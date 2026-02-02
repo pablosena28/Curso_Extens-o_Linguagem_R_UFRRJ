@@ -1,0 +1,129 @@
+---
+title: "Trabalho final"
+author: "Pablo Sena"
+date: "2026-02-02"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(knitr)
+library(moments)
+library(tibble)
+library(flextable)
+```
+
+## 1. Cabeçalho
+Trabalho Final – Pablo Sena
+
+## 2. Objetivos
+Realizar uma análise exploratória descritiva dos municípios do estado do Rio de Janeiro, utilizando indicadores socioeconômicos, com foco no Produto Interno Bruto per capita e nas diferenças regionais.
+
+## 3. Resultados
+
+### 3.1 Carregamento da base
+```{r}
+df <- read_csv("data/municipios_rj5.csv", show_col_types = FALSE)
+
+glimpse(df)
+summary(df)
+```
+
+### 3.2 Definição das variáveis analisadas
+```{r}
+COL_NUMERICA <- "PIB_PERCAPITA"
+COL_CATEGORICA <- "REGIAO"
+```
+
+### 3.3 Tabela descritiva
+```{r}
+df %>%
+  select(MUNICIPIO, REGIAO, PIB_PERCAPITA) %>%
+  head(10) %>%
+  flextable()
+```
+
+### 3.4 Consulta na base de dados
+```{r}
+df %>%
+  group_by(REGIAO) %>%
+  summarise(
+    media_pib = mean(PIB_PERCAPITA, na.rm = TRUE),
+    mediana_pib = median(PIB_PERCAPITA, na.rm = TRUE),
+    municipios = n(),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(media_pib)) %>%
+  kable(caption = "PIB per capita médio por região")
+```
+
+### 3.5 Medidas de posição e dispersão
+```{r}
+x <- df$PIB_PERCAPITA
+
+tibble(
+  media = mean(x, na.rm = TRUE),
+  mediana = median(x, na.rm = TRUE),
+  q1 = quantile(x, 0.25, na.rm = TRUE),
+  q3 = quantile(x, 0.75, na.rm = TRUE),
+  minimo = min(x, na.rm = TRUE),
+  maximo = max(x, na.rm = TRUE),
+  variancia = var(x, na.rm = TRUE),
+  desvio_padrao = sd(x, na.rm = TRUE),
+  iqr = IQR(x, na.rm = TRUE)
+) %>%
+  kable(caption = "Medidas descritivas do PIB per capita")
+```
+
+### 3.6 Assimetria e curtose
+```{r}
+tibble(
+  assimetria = moments::skewness(x, na.rm = TRUE),
+  curtose = moments::kurtosis(x, na.rm = TRUE)
+) %>%
+  kable(caption = "Assimetria e curtose do PIB per capita")
+```
+
+### 3.7 Distribuição de frequências
+```{r}
+df %>%
+  count(REGIAO, sort = TRUE, name = "freq") %>%
+  mutate(percentual = freq / sum(freq)) %>%
+  kable(caption = "Distribuição dos municípios por região")
+```
+
+## 4. Gráficos
+
+### 4.1 Histograma
+```{r}
+ggplot(df, aes(x = PIB_PERCAPITA)) +
+  geom_histogram(bins = 30) +
+  labs(
+    title = "Distribuição do PIB per capita nos municípios do RJ",
+    x = "PIB per capita",
+    y = "Frequência"
+  )
+```
+
+### 4.2 Boxplot
+```{r}
+ggplot(df, aes(x = REGIAO, y = PIB_PERCAPITA)) +
+  geom_boxplot() +
+  labs(
+    title = "PIB per capita por região do RJ",
+    x = "Região",
+    y = "PIB per capita"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## 5. Conclusões
+Os resultados indicam diferenças relevantes no PIB per capita entre as regiões do estado do Rio de Janeiro. Observa-se elevada dispersão dos valores, com presença de assimetria positiva, sugerindo concentração de renda em poucos municípios. Os boxplots evidenciam desigualdades regionais que podem estar associadas a fatores estruturais e econômicos.
+
+
+
+
